@@ -40,6 +40,7 @@ steps:
     repository_name=${branch_name}-$repo_name
     echo "##vso[task.setvariable variable=REPOSITORY_NAME]$repository_name"
     ./build.sh ${repository_name}:latest
+    docker images --format "{{.Repository}}:{{.Tag}}" | grep ${repository_name}
     cd -
 - ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/uat') }}:
   - task: ECRPushImage@1

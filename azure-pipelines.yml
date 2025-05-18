@@ -22,7 +22,10 @@ resources:
     type: github
     endpoint: multimatrixlimited
     name: multimatrixlimited/bf-common-utils
-
+  - repository: bf-model 
+    type: github
+    endpoint: multimatrixlimited
+    name: multimatrixlimited/bf-model
 steps:
 - checkout: self
 - checkout: bf-common-utils

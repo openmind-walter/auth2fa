@@ -26,10 +26,11 @@ WORKDIR /app
 
 COPY bf-common-utils/src bf-common-utils/src
 COPY bf-common-utils/Cargo* bf-common-utils/.
+COPY bf-model bf-model
 COPY auth2fa/src auth2fa/src/
 COPY auth2fa/Cargo* auth2fa/.
 
-ENV CARGO_BIN_NAME=out
+ENV CARGO_BIN_NAME=auth2fa
 
 WORKDIR /app/auth2fa
 RUN cargo build --target x86_64-unknown-linux-musl --release --bin ${CARGO_BIN_NAME}
@@ -49,8 +50,8 @@ COPY --from=builder /etc/group /etc/group
 
 WORKDIR /app
 
-COPY --from=builder /app/auth2fa/target/x86_64-unknown-linux-musl/release/out ./
+COPY --from=builder /app/auth2fa/target/x86_64-unknown-linux-musl/release/auth2fa ./
 
 USER app:app
 
-CMD ["/app/out"]
+CMD ["/app/auth2fa"]

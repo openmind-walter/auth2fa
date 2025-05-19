@@ -509,7 +509,7 @@ async fn verify_totp(
     if is_valid {
         Ok(Json(ApiResponse {
             status: true,
-            code: "OTP_SUCCESS".to_string()
+            code: "OTP_VERIFIED".to_string()
         }))
     } else {
         Ok(Json(ApiResponse {

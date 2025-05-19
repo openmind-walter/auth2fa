@@ -37,8 +37,13 @@ Verify OTP for a user.
 }
 
 {
-  "verified": true,
-  "message": "Verification successful"
+  "status": true,
+  "code": "OTP_VERIFIED"
 }
+{
+  "status": false,
+  "code": "EOTP_*"
+}
+
 ```
 

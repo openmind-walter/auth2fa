@@ -386,7 +386,7 @@ async fn setup_totp(
     // urlencoding::encode(&provisioning_uri)
     // );
     let qr_code_url = format!(
-        "https://{}/2fa/qr?data={}", //&size=200x200",
+        "{}/2fa/qr?data={}", //&size=200x200",
         &site,
         urlencoding::encode(&provisioning_uri)
         );

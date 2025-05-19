@@ -142,6 +142,7 @@ struct AppState {
 struct TotpSetupRequest {
     user_id: String,
     issuer: String, // e.g., "YourApp"
+    site: String,
 }
 
 #[derive(Serialize, Deserialize)]

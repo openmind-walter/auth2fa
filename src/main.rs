@@ -172,10 +172,10 @@ struct FingerprintVerifyRequest {
 }
 
 // Basic response model
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 struct ApiResponse {
     status: bool,
-    message: String
+    code: String
 }
 
 // Database schema setup function
@@ -450,7 +450,7 @@ async fn verify_totp(
         None => {
             return Ok(Json(ApiResponse {
                 status: false,
-                message: "TOTP NOT SETUP".to_string(),
+                code: "EOTP_NOT_SETUP".to_string()
             }))
         }
     };
@@ -461,7 +461,7 @@ async fn verify_totp(
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ApiResponse {
                 status: false,
-                message: format!("Invalid secret format: {}", e)
+                code: "EOTP_INVALID_SECRET".to_string()
             }),
         )
     })?;
@@ -474,7 +474,7 @@ async fn verify_totp(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ApiResponse {
                     status: false,
-                    message: format!("System time error")
+                    code: "EOTP_SYSTEM_TIME_ERROR".to_string()
                 }),
             )
         })?
@@ -495,7 +495,7 @@ async fn verify_totp(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ApiResponse {
                     status: false,
-                    message: format!("TOTP calculation error: {}", e),
+                    code: "EOTP_CALC_ERROR".to_string()
                 }),
             )
         })?;
@@ -509,12 +509,12 @@ async fn verify_totp(
     if is_valid {
         Ok(Json(ApiResponse {
             status: true,
-            message: "TOTP code verified successfully".to_string(),
+            code: "OTP_SUCCESS".to_string()
         }))
     } else {
         Ok(Json(ApiResponse {
-            status: true,
-            message: "Invalid TOTP code".to_string(),
+            status: false,
+            code: "EOTP_INVALID".to_string()
         }))
     }
 }
@@ -852,7 +852,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // .route("/api/users", post(create_user))
         .route("/2fa/qr", get(generate_qr))
         .route("/2fa/otp/setup", post(|state, json| setup_totp(state, json)))
-        .route("/2fa/otp/verify", get(|state, json| verify_totp(state, json)))
+        .route("/2fa/otp/verify", post(|state, json| verify_totp(state, json)))
         // .route("/2fa/fingerprint/setup", post(|state, json| setup_fingerprint(state, json)))
         // .route("/2fa/fingerprint/verify", post(|state, json| verify_fingerprint(state, json)))
         .layer(cors)

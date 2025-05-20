@@ -392,7 +392,6 @@ async fn setup_totp(
     //     );
     let qr_code_url = format!(
         "https://api.qrserver.com/v1/create-qr-code/?data={}&size=200x200",
-        // &site,
         urlencoding::encode(&provisioning_uri)
         );
     println!("QR Code URL {}", &qr_code_url) ;

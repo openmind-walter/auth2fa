@@ -379,15 +379,19 @@ async fn setup_totp(
     //         )
     //     })?;
 
-        // "https://api.qrserver.com/v1/create-qr-code/?data={}&size=200x200",
+    //"https://api.qrserver.com/v1/create-qr-code/?data={}&size=200x200",
     // QR code URL (in a real app, you would generate a QR code)
     // let qr_code_url = format!(
     // "http://localhost:8080/2fa/qr?data={}", //&size=200x200",
     // urlencoding::encode(&provisioning_uri)
     // );
+    // let qr_code_url = format!(
+    //     "{}/2fa/qr?data={}", //&size=200x200",
+    //     &site,
+    //     urlencoding::encode(&provisioning_uri)
+    //     );
     let qr_code_url = format!(
-        "{}/2fa/qr?data={}", //&size=200x200",
-        &site,
+        "https://api.qrserver.com/v1/create-qr-code/?data={}&size=200x200",
         urlencoding::encode(&provisioning_uri)
         );
     println!("QR Code URL {}", &qr_code_url) ;

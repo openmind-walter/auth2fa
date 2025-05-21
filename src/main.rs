@@ -439,7 +439,7 @@ async fn verify_totp(
     let data = serde_json::json!({
         "USER_ID": &request.user_id
     });
-    let end_point = format!("{}/v1/auth2fa/totp_secrets/verify", state.api_server_url);
+    let end_point = format!("{}/v1/auth2fa/otp_secrets/verify", state.api_server_url);
     let res = api_server(&end_point, data).await;
     println!("Res {:#?}", res);
     let mut secret_base32: Option<&str> = None;

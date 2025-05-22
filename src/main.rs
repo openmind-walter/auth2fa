@@ -221,7 +221,7 @@ fn generate_totp_secret() -> String {
 fn create_totp_uri(secret_base32: &str, account_name: &str, issuer: &str) -> String {
     // Format according to the KeyURI format: https://github.com/google/google-authenticator/wiki/Key-Uri-Format
     format!(
-        "otpauth://totp/{}:{}?secret={}&issuer={}&algorithm=SHA1&digits=6&period=30",
+        "otpauth://totp/{}:{}?secret={}&issuer=dev:{}&algorithm=SHA1&digits=6&period=30",
         urlencoding::encode(issuer),
         urlencoding::encode(account_name),
         secret_base32,

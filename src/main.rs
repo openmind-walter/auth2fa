@@ -8,24 +8,24 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use axum::extract::Query;
+// use axum::extract::Query;
 use axum::{
-    extract::{Path, State},
+    extract::{State},
     http::{
         header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
         HeaderMap, HeaderName, HeaderValue, Method, StatusCode,
     },
-    response::IntoResponse,
+    // response::IntoResponse,
     routing::{get, post},
     Json, Router,
 };
 use bf_common_utils::get_bf_auth::make_request;
-use std::io::Cursor;
+// use std::io::Cursor;
 use tower_http::cors::{ AllowOrigin, CorsLayer };
-use image::{Luma, ImageBuffer};
+// use image::{Luma, ImageBuffer};
 
 use std::sync::Arc;
-use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
+// use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use rand::{thread_rng, Rng};
 use std::collections::HashMap;
 use std::env;
@@ -33,61 +33,63 @@ use std::net::SocketAddr;
 use std::sync::Mutex;
 use hmac::Mac;
 //use qrcode::QrCode;
-use qrcodegen::{QrCode, QrCodeEcc};
-use image::ImageOutputFormat;
-use axum::response::Response;
-#[derive(Deserialize)]
-struct QrParams {
-    data: String,
-    #[serde(default = "default_size")]
-    size: u32,
-}
+// use qrcodegen::{QrCode, QrCodeEcc};
+// use image::ImageOutputFormat;
+// use axum::response::Response;
+// #[derive(Deserialize)]
+// struct QrParams {
+//     data: String,
+//     #[serde(default = "default_size")]
+//     size: u32,
+// }
 
-fn default_size() -> u32 {
-    150
-}
-async fn generate_qr(Query(params): Query<HashMap<String, String>>) -> Response {
-    let data = match params.get("data") {
-        Some(d) => d,
-        None => return (StatusCode::BAD_REQUEST, "Missing `data` param").into_response(),
-    };
+// fn default_size() -> u32 {
+//     150
+// }
 
-    // Generate the QR code
-    let qr = match QrCode::encode_text(data, QrCodeEcc::Medium) {
-        Ok(code) => code,
-        Err(_) => return (StatusCode::BAD_REQUEST, "Invalid data").into_response(),
-    };
+// async fn generate_qr(Query(params): Query<HashMap<String, String>>) -> Response {
+//     let data = match params.get("data") {
+//         Some(d) => d,
+//         None => return (StatusCode::BAD_REQUEST, "Missing `data` param").into_response(),
+//     };
 
-    // Convert to image
-    let size = qr.size();
-    let scale = 2; // pixels per module
-    let img_size = size * scale;
+//     // Generate the QR code
+//     let qr = match QrCode::encode_text(data, QrCodeEcc::Medium) {
+//         Ok(code) => code,
+//         Err(_) => return (StatusCode::BAD_REQUEST, "Invalid data").into_response(),
+//     };
 
-    let mut img = ImageBuffer::<Luma<u8>, Vec<u8>>::new(img_size as u32, img_size as u32);
-    for y in 0..size {
-        for x in 0..size {
-            let color = if qr.get_module(x, y) { 0 } else { 255 };
-            for dy in 0..scale {
-                for dx in 0..scale {
-                    img.put_pixel(
-                        (x * scale + dx) as u32,
-                        (y * scale + dy) as u32,
-                        Luma([color]),
-                    );
-                }
-            }
-        }
-    }
+//     // Convert to image
+//     let size = qr.size();
+//     let scale = 2; // pixels per module
+//     let img_size = size * scale;
 
-    // Encode PNG to bytes
-    let mut buf = Cursor::new(Vec::new());
-    img.write_to(&mut buf, ImageOutputFormat::Png).unwrap();
+//     let mut img = ImageBuffer::<Luma<u8>, Vec<u8>>::new(img_size as u32, img_size as u32);
+//     for y in 0..size {
+//         for x in 0..size {
+//             let color = if qr.get_module(x, y) { 0 } else { 255 };
+//             for dy in 0..scale {
+//                 for dx in 0..scale {
+//                     img.put_pixel(
+//                         (x * scale + dx) as u32,
+//                         (y * scale + dy) as u32,
+//                         Luma([color]),
+//                     );
+//                 }
+//             }
+//         }
+//     }
 
-    let mut headers = HeaderMap::new();
-    headers.insert("Content-Type", "image/png".parse().unwrap());
+//     // Encode PNG to bytes
+//     let mut buf = Cursor::new(Vec::new());
+//     img.write_to(&mut buf, ImageOutputFormat::Png).unwrap();
 
-    (headers, buf.into_inner()).into_response()
-}
+//     let mut headers = HeaderMap::new();
+//     headers.insert("Content-Type", "image/png".parse().unwrap());
+
+//     (headers, buf.into_inner()).into_response()
+// }
+
 // pub async fn generate_qr(Query(params): Query<QrParams>) -> impl IntoResponse {
 //     let code = QrCode::new(params.data.as_bytes()).unwrap();
 
@@ -133,7 +135,7 @@ struct FingerprintStore {
 // App state
 struct AppState {
     api_server_url: String,
-    // pool: Pool,
+    otp_env_prefix: String,
     fingerprint_store: FingerprintStore,
 }
 
@@ -149,7 +151,6 @@ struct TotpSetupRequest {
 struct TotpSetupResponse {
     secret: String,
     provisioning_uri: String,
-    qr_code_url: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -212,19 +213,20 @@ struct ApiResponse {
 // Updated TOTP functions for totp-rs 5.7.0
 
 // Generate a new TOTP secret
-fn generate_totp_secret() -> String {
-    let mut rng = thread_rng();
-    let secret_bytes: Vec<u8> = (0..32).map(|_| rng.gen()).collect();
-    URL_SAFE_NO_PAD.encode(&secret_bytes)
-}
+// fn generate_totp_secret() -> String {
+//     let mut rng = thread_rng();
+//     let secret_bytes: Vec<u8> = (0..32).map(|_| rng.gen()).collect();
+//     URL_SAFE_NO_PAD.encode(&secret_bytes)
+// }
 // Create URL manually since the library API has changed
-fn create_totp_uri(secret_base32: &str, account_name: &str, issuer: &str) -> String {
+fn create_totp_uri(secret_base32: &str, account_name: &str, issuer: &str, env_prefix:&str) -> String {
     // Format according to the KeyURI format: https://github.com/google/google-authenticator/wiki/Key-Uri-Format
     format!(
-        "otpauth://totp/{}:{}?secret={}&issuer=dev:{}&algorithm=SHA1&digits=6&period=30",
+        "otpauth://totp/{}:{}?secret={}&issuer={}{}&algorithm=SHA1&digits=6&period=30",
         urlencoding::encode(issuer),
         urlencoding::encode(account_name),
         secret_base32,
+        urlencoding::encode(env_prefix),
         urlencoding::encode(issuer)
     )
 }
@@ -336,23 +338,11 @@ async fn setup_totp(
     State(state): State<Arc<AppState>>,
     Json(request): Json<TotpSetupRequest>,
 ) -> Result<Json<TotpSetupResponse>, (StatusCode, Json<ApiResponse>)> {
-    // let client = state.pool.get().await.map_err(|e| {
-    //     (
-    //         StatusCode::INTERNAL_SERVER_ERROR,
-    //         Json(ApiResponse {
-    //             success: false,
-    //             message: format!("Database error: {}", e),
-    //         }),
-    //     )
-    // })?;
-    let site = &request.site ;
     // Generate new TOTP secret
-    println!("Secret");
     let secret_base32 = generate_base32_secret();
 
-    println!("Secret {}", secret_base32);
+    // println!("Secret {}", secret_base32);
     // Generate provisioning URI for QR code
-    let provisioning_uri = create_totp_uri(&secret_base32, &request.user_id, &request.issuer);
 
     let data = serde_json::json!({
         "USER_ID": &request.user_id,
@@ -360,24 +350,16 @@ async fn setup_totp(
         "ISSUER": &request.issuer,
     });
     let end_point = format!("{}/v1/auth2fa/otp_secrets/setup", state.api_server_url);
-    api_server(&end_point, data).await;
-
-    // Store the secret in the database
-    // client
-    //     .execute(
-    //         "INSERT INTO totp_secrets (user_id, secret, issuer) VALUES ($1, $2, $3)",
-    //         &[&request.user_id, &secret_base32, &request.issuer],
-    //     )
-    //     .await
-    //     .map_err(|e| {
-    //         (
-    //             StatusCode::INTERNAL_SERVER_ERROR,
-    //             Json(ApiResponse {
-    //                 success: false,
-    //                 message: format!("Database error: {}", e),
-    //             }),
-    //         )
-    //     })?;
+    let res = api_server(&end_point, data).await;
+    println!("Res {:#?}", res);
+    let mut name = "None"; // No need to specify type, it's inferred as &str
+    if let Some(result_array) = res["result"].as_array() {
+        if result_array.len() == 1 {
+            name = result_array[0]["NAME"].as_str().unwrap_or("None");
+        }
+    }
+    
+    let provisioning_uri = create_totp_uri(&secret_base32, name, &request.issuer, &state.otp_env_prefix);
 
     //"https://api.qrserver.com/v1/create-qr-code/?data={}&size=200x200",
     // QR code URL (in a real app, you would generate a QR code)
@@ -390,15 +372,15 @@ async fn setup_totp(
     //     &site,
     //     urlencoding::encode(&provisioning_uri)
     //     );
-    let qr_code_url = format!(
-        "https://api.qrserver.com/v1/create-qr-code/?data={}&size=200x200",
-        urlencoding::encode(&provisioning_uri)
-        );
-    println!("QR Code URL {}", &qr_code_url) ;
+    // let qr_code_url = format!(
+    //     "https://api.qrserver.com/v1/create-qr-code/?data={}&size=200x200",
+    //     urlencoding::encode(&provisioning_uri)
+    //     );
+    // println!("QR Code URL {}", &qr_code_url) ;
     Ok(Json(TotpSetupResponse {
         secret: secret_base32,
         provisioning_uri,
-        qr_code_url,
+        // qr_code_url,
     }))
 }
 
@@ -408,40 +390,12 @@ async fn verify_totp(
     Json(request): Json<TotpVerifyRequest>,
 ) -> Result<Json<ApiResponse>, (StatusCode, Json<ApiResponse>)> {
 
-    // let client = state.pool.get().await.map_err(|e| {
-    //     (
-    //         StatusCode::INTERNAL_SERVER_ERROR,
-    //         Json(ApiResponse {
-    //             success: false,
-    //             message: format!("Database error: {}", e),
-    //         }),
-    //     )
-    // })?;
-
-    // Get the stored secret for this user
-    // let row = client
-    //     .query_one(
-    //         "SELECT secret, issuer FROM totp_secrets WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1",
-    //         &[&request.user_id],
-    //     )
-    //     .await
-    //     .map_err(|e| {
-    //         (
-    //             StatusCode::NOT_FOUND,
-    //             Json(ApiResponse {
-    //                 success: false,
-    //                 message: format!("User not found or TOTP not set up: {}", e),
-    //             }),
-    //         )
-    //     })?;
-
-
     let data = serde_json::json!({
         "USER_ID": &request.user_id
     });
     let end_point = format!("{}/v1/auth2fa/otp_secrets/verify", state.api_server_url);
     let res = api_server(&end_point, data).await;
-    println!("Res {:#?}", res);
+    // println!("Res {:#?}", res);
     let mut secret_base32: Option<&str> = None;
     if let Some(result_array) = res["result"].as_array() {
         if result_array.len() == 1 {
@@ -449,7 +403,7 @@ async fn verify_totp(
         }
     }
     match secret_base32 {
-        Some(secret) => {
+        Some(_secret) => {
         },
         None => {
             return Ok(Json(ApiResponse {
@@ -511,11 +465,13 @@ async fn verify_totp(
     }
 
     if is_valid {
+        print!("Valid {:#?}", &request.user_id);
         Ok(Json(ApiResponse {
             status: true,
             code: "OTP_VERIFIED".to_string()
         }))
     } else {
+        print!("Invalid {:#?}", &request.user_id);
         Ok(Json(ApiResponse {
             status: false,
             code: "EOTP_INVALID".to_string()
@@ -807,6 +763,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // cfg.password = env::var("PG_PASSWORD").ok();
     // cfg.dbname = env::var("PG_DBNAME").ok();
     let api_server_url = env::var("API_SERVER_URL").expect("API_SERVER_URL not set");
+    let otp_env_prefix = env::var("OTP_ENV_PREFIX").expect("OTP_ENV_PREFIX not set");
 
     // let pool = cfg.create_pool(None, NoTls)?;
     // let client = pool.get().await?;
@@ -819,7 +776,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let state = Arc::new(AppState {
         api_server_url,
-        // pool,
+        otp_env_prefix,
         fingerprint_store,
     });
 
@@ -827,17 +784,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .split(',')
         .map(|origin| origin.trim().parse::<HeaderValue>().unwrap())
         .collect::<Vec<_>>();
-
-    // let cors = CorsLayer::new()
-    //     .allow_origin(AllowOrigin::list(allowed_origins))
-    //     .allow_credentials(true)
-    //     .allow_methods([Method::GET, Method::POST])
-    //     .allow_headers([
-    //         AUTHORIZATION,
-    //         ACCEPT,
-    //         CONTENT_TYPE,
-    //         HeaderName::from_static("refresh-token"),
-    //     ]);
 
     let cors = CorsLayer::new()
         .allow_origin(AllowOrigin::list(allowed_origins))
@@ -854,7 +800,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = Router::new()
         .route("/health", get(health_check))
         // .route("/api/users", post(create_user))
-        .route("/2fa/qr", get(generate_qr))
+        // .route("/2fa/qr", get(generate_qr))
         .route("/2fa/otp/setup", post(|state, json| setup_totp(state, json)))
         .route("/2fa/otp/verify", post(|state, json| verify_totp(state, json)))
         // .route("/2fa/fingerprint/setup", post(|state, json| setup_fingerprint(state, json)))

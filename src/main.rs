@@ -157,6 +157,7 @@ struct TotpSetupResponse {
 struct TotpVerifyRequest {
     user_id: String,
     code: String,
+    is_setup: Option<String>
 }
 
 // Fingerprint Auth models
@@ -466,6 +467,13 @@ async fn verify_totp(
 
     if is_valid {
         print!("Valid {:#?}", &request.user_id);
+        if request.is_setup.is_some() {
+            let end_point = format!("{}/v1/auth2fa/otp_secrets/verified", state.api_server_url);
+            let data = serde_json::json!({
+                "USER_ID": &request.user_id
+            });
+            api_server(&end_point, data).await;
+        }
         Ok(Json(ApiResponse {
             status: true,
             code: "OTP_VERIFIED".to_string()

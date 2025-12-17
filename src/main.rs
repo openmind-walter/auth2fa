@@ -236,7 +236,7 @@ fn create_totp_uri(secret_base32: &str, account_name: &str, issuer: &str, env_pr
 fn generate_base32_secret() -> String {
     // Generate random bytes
     let mut rng = thread_rng();
-    let secret_bytes: Vec<u8> = (0..20).map(|_| rng.gen()).collect();
+    let secret_bytes: Vec<u8> = (0..20).map(|_| rng.gen_range(0..255)).collect();
     
     // Base32 encode the bytes - note we're doing our own implementation since the library
     // doesn't expose what we need
